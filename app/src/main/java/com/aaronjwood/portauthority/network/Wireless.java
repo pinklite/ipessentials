@@ -1,12 +1,15 @@
 package com.aaronjwood.portauthority.network;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 
+import com.aaronjwood.portauthority.R;
 import com.aaronjwood.portauthority.async.WanIpAsyncTask;
 import com.aaronjwood.portauthority.response.MainAsyncResponse;
 
@@ -22,7 +25,7 @@ import java.util.Enumeration;
 
 public class Wireless {
 
-    private Context context;
+    private final Context context;
 
     public static class NoWifiManagerException extends Exception {
     }
@@ -49,18 +52,22 @@ public class Wireless {
      * @return MAC address
      */
     public String getMacAddress() throws UnknownHostException, SocketException, NoWifiManagerException, NoWifiInterface {
-        String address = getWifiInfo().getMacAddress(); //Won't work on Android 6+ https://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id
+        @SuppressLint("HardwareIds") String address = getWifiInfo().getMacAddress(); // Won't work on Android 6+ https://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id
         if (!"02:00:00:00:00:00".equals(address)) {
             return address;
         }
 
-        //This should get us the device's MAC address on Android 6+
+        // This should get us the device's MAC address on Android 6+
         NetworkInterface iface = NetworkInterface.getByInetAddress(getWifiInetAddress());
         if (iface == null) {
             throw new NoWifiInterface();
         }
 
         byte[] mac = iface.getHardwareAddress();
+        if (mac == null) {
+            // This all changed starting with Android 11 https://developer.android.com/training/articles/user-data-ids#mac-11-plus
+            return this.context.getResources().getString(R.string.nonPrivilegedMacAccess);
+        }
 
         StringBuilder buf = new StringBuilder();
         for (byte aMac : mac) {
@@ -150,10 +157,6 @@ public class Wireless {
      */
     public int getInternalWifiSubnet() throws NoWifiManagerException {
         WifiManager wifiManager = getWifiManager();
-        if (wifiManager == null) {
-            return 0;
-        }
-
         DhcpInfo dhcpInfo = wifiManager.getDhcpInfo();
         if (dhcpInfo == null) {
             return 0;
@@ -175,7 +178,7 @@ public class Wireless {
                 }
 
                 for (InterfaceAddress address : networkInterface.getInterfaceAddresses()) {
-                    if (inetAddress != null && inetAddress.equals(address.getAddress())) {
+                    if (inetAddress.equals(address.getAddress())) {
                         return address.getNetworkPrefixLength(); // This returns a short of the CIDR notation.
                     }
                 }
@@ -193,7 +196,7 @@ public class Wireless {
      * @return Number of hosts as an integer.
      */
     public int getNumberOfHostsInWifiSubnet() throws NoWifiManagerException {
-        Double subnet = (double) getInternalWifiSubnet();
+        double subnet = getInternalWifiSubnet();
         double hosts;
         double bitsLeft = 32.0d - subnet;
         hosts = Math.pow(2.0d, bitsLeft) - 2.0d;
@@ -231,7 +234,7 @@ public class Wireless {
      * @param delegate Called when the external IP address has been fetched
      */
     public void getExternalIpAddress(MainAsyncResponse delegate) {
-        new WanIpAsyncTask(delegate).execute();
+        new WanIpAsyncTask(delegate).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**
@@ -249,7 +252,7 @@ public class Wireless {
      * @return True if the device is connected, false if it isn't
      */
     public boolean isConnectedWifi() throws NoConnectivityManagerException {
-        NetworkInfo info = getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        NetworkInfo info = getConnectivityManager().getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         return info != null && info.isConnectedOrConnecting();
     }
 
@@ -297,15 +300,6 @@ public class Wireless {
         }
 
         return manager;
-    }
-
-    /**
-     * Gets the Android network information in the context of the current activity
-     *
-     * @return Network information
-     */
-    private NetworkInfo getNetworkInfo(int type) throws NoConnectivityManagerException {
-        return getConnectivityManager().getNetworkInfo(type);
     }
 
 }

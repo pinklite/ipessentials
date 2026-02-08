@@ -15,17 +15,17 @@
         <item>10</item>
     </string-array>
     <string-array name="upperDrawer">
-        <item>\u2601 Scanner l\'IP WAN</item>
-        <item>\u263c Reveiller l\'appareil</item>
-        <item>\u2194 Recherche DNS</item>
+        <item>\u2601 WAN Host prüfen</item>
+        <item>\u263c Host aufwecken</item>
+        <item>\u2194 DNS-Suche</item>
     </string-array>
     <string-array name="lowerDrawer">
-        <item>\u2195 MAJ Base de données OUI</item>
-        <item>\u2195 MAJ Liste Ports</item>
-        <item>\u2699 Paramètres</item>
+        <item>\u2195 OUI-Datenbank aktualisieren</item>
+        <item>\u2195 Port-Datenbank aktualisieren</item>
+        <item>\u2699 Einstellungen</item>
     </string-array>
     <string-array name="records">
-        <item>Type d\'Enregistrement</item>
+        <item>Eintragstyp</item>
         <item>A</item>
         <item>AAAA</item>
         <item>AFSDB</item>
